@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+data/
+kitchen.db
+.git/
+.gitignore
+.venv/
+*.md

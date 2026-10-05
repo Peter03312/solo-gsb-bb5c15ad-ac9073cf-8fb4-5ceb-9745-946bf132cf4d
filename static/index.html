@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>共享厨房过敏原交叉污染排程</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🍳</span>
+    <div>
+      <h1>共享厨房 · 过敏原交叉污染排程</h1>
+      <p class="sub">器具占用 × 清洁有效期 × 残留风险来源</p>
+    </div>
+  </div>
+  <div class="meta">
+    <div class="url-box">
+      <span class="url-label">服务访问地址（端口 <b id="svc-port">…</b>）</span>
+      <a id="svc-url" href="#" target="_blank" rel="noopener">…</a>
+    </div>
+    <button class="btn ghost" id="btn-seed">载入演示数据</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="schedule" class="active">排程</button>
+  <button data-tab="batches">批次</button>
+  <button data-tab="cleanings">清洁记录</button>
+  <button data-tab="equipment">台面与器具 / 过敏原</button>
+</nav>
+
+<main>
+  <!-- ===================== 排程 ===================== -->
+  <section id="tab-schedule" class="tab active">
+    <div class="toolbar">
+      <button class="btn primary" id="btn-run">▶ 生成排程（按当前顺序）</button>
+      <button class="btn" id="btn-export-csv">导出 CSV</button>
+      <button class="btn" id="btn-export-md">导出风险说明 (Markdown)</button>
+      <span class="muted" id="run-time"></span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>排入顺序（可调整优先级）</h2>
+        <p class="muted small">按下方顺序依次尝试排入；被阻塞批次会被跳过（不沉积残留、不占用器具），可能影响后续批次的判断。</p>
+        <ol class="order-list" id="order-list"></ol>
+      </div>
+      <div class="card">
+        <h2>排程结果</h2>
+        <div id="schedule-stats" class="stats"></div>
+        <h3 class="ok">✅ 可执行批次</h3>
+        <div id="scheduled-list" class="result-list"></div>
+        <h3 class="bad">🚫 被阻塞批次（保留原因）</h3>
+        <div id="blocked-list" class="result-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 批次 ===================== -->
+  <section id="tab-batches" class="tab">
+    <div class="card">
+      <h2>录入待制作批次</h2>
+      <form id="form-batch" class="form">
+        <label>批次名称<input name="name" required placeholder="如：全麦贝果"></label>
+        <div class="row">
+          <label>计划开始<input type="datetime-local" name="planned_start" required></label>
+          <label>计划结束<input type="datetime-local" name="planned_end" required></label>
+        </div>
+        <fieldset>
+          <legend>该批次使用的过敏原集合</legend>
+          <div class="chips" data-name="allergen_ids"></div>
+        </fieldset>
+        <fieldset>
+          <legend>使用的台面 / 器具（可多选）</legend>
+          <div class="chips" data-name="equipment_ids"></div>
+        </fieldset>
+        <label class="full">备注<input name="notes" placeholder="可选"></label>
+        <div class="form-actions"><button class="btn primary" type="submit">保存批次</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>已录入批次 <span class="count" id="batch-count"></span></h2>
+      <div id="batch-list" class="entity-list"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 清洁记录 ===================== -->
+  <section id="tab-cleanings" class="tab">
+    <div class="card">
+      <h2>录入清洁记录</h2>
+      <form id="form-cleaning" class="form">
+        <div class="row">
+          <label>台面 / 器具<select name="equipment_id" required></select></label>
+          <label>清洁方式<input name="method" placeholder="如：热碱水清洗 + 清水冲洗"></label>
+        </div>
+        <div class="row">
+          <label>清洁完成时间<input type="datetime-local" name="cleaned_at" required></label>
+          <label>清洁有效期截止<input type="datetime-local" name="valid_until" required></label>
+        </div>
+        <label class="inline"><input type="checkbox" name="covers_all"> 本次清洁覆盖全部过敏原</label>
+        <fieldset id="covers-field">
+          <legend>清除的过敏原（未覆盖的过敏原残留仍会触发阻塞）</legend>
+          <div class="chips" data-name="cleaning_allergen_ids"></div>
+        </fieldset>
+        <label class="full">备注<input name="notes" placeholder="可选"></label>
+        <div class="form-actions"><button class="btn primary" type="submit">保存清洁记录</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>清洁记录 <span class="count" id="cleaning-count"></span></h2>
+      <div id="cleaning-list" class="entity-list"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 器具 / 过敏原 ===================== -->
+  <section id="tab-equipment" class="tab">
+    <div class="grid-2">
+      <div class="card">
+        <h2>新建台面 / 器具</h2>
+        <form id="form-equipment" class="form">
+          <label>名称<input name="name" required placeholder="如：二号烤箱"></label>
+          <label>类型<input name="equip_type" placeholder="如：烤箱 / 操作台 / 搅拌器具"></label>
+          <div class="form-actions"><button class="btn primary" type="submit">保存</button></div>
+        </form>
+        <h3>已有器具</h3>
+        <ul class="plain-list" id="equipment-list"></ul>
+      </div>
+      <div class="card">
+        <h2>新建自定义过敏原</h2>
+        <form id="form-allergen" class="form">
+          <label>中文名<input name="name_zh" required placeholder="如：羽扇豆"></label>
+          <label>英文名（可选）<input name="name_en" placeholder="Lupin"></label>
+          <div class="form-actions"><button class="btn primary" type="submit">保存</button></div>
+        </form>
+        <h3>过敏原清单（内置 + 自定义）</h3>
+        <ul class="plain-list" id="allergen-list"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+services:
+  kitchen-scheduler:
+    build: .
+    image: shared-kitchen-allergen-scheduler:latest
+    container_name: kitchen-scheduler
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      # 页面顶部显示的对外访问地址；端口或域名变化时同步修改
+      PORT: "${PORT:-8000}"
+      PUBLIC_URL: "${PUBLIC_URL:-http://localhost:8000}"
+      DB_PATH: "/data/kitchen.db"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,urllib.request as u; port=os.environ.get('PORT','8000'); sys.exit(0 if u.urlopen(f'http://127.0.0.1:{port}/api/meta', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

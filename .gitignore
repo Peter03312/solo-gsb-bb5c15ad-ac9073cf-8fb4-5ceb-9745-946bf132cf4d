@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+kitchen.db
+.DS_Store
